@@ -6,33 +6,57 @@
 </head>
 <body ng-controller="DojoController">
 	<dir class="container">
-		<h1>Hello Dojo, {{ nome }}</h1>
-		<hr>	
+		<div class="page-header">
+		  <h1>TDV Dojo <small>{{ nome }}</small></h1>
+		</div>		
 
-		<form ng-submit="save()">
-			<label>ID:</label>
-			<input type="text" name="id" ng-model="id" disabled="disabled">
-			<label>Nome:</label>
-			<input type="text" name="nome" ng-model="nome">
-			<button type="submit">Salvar</button>
-		</form>
-		<hr>
-		<button class="btn btn-default btn-xs" ng-click="atualizaTabela()">
-			<i class="glyphicon glyphicon-refresh"></i>
-		</button>
+		<div class="panel panel-default">
+  			<div class="panel-body">
+				<form ng-submit="save()">
+					<label>ID:</label>
+					<input type="text" class="form-control" name="id" ng-model="id" disabled="disabled">
+					<label>Nome:</label>
+					<input type="text" class="form-control" name="nome" ng-model="nome">
+					<hr>
+					<button type="submit" class="btn btn-primary pull-right">
+						<i class="glyphicon glyphicon-floppy-disk"></i> Salvar
+					</button>
+				</form>
+			</div>
+		</div>
+
 		<table class="table table-condensed table-bordered table-hover table-striped">
 			<thead>
 				<tr>
-					<th>ID</th>
+					<th class="col-md-1 text-center">ID</th>
 					<th>Nome</th>
-					<th><i class="glyphicon glyphicon-tasks"></i></th>
+					<th class="col-md-1 text-center">
+						<button type="submit" class="btn btn-default btn-block">
+							<i class="glyphicon glyphicon-plus"></i>
+						</button>
+					</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr ng-repeat="p in pessoas">
-					<td>{{p.id}}</td>
+					<td class="col-md-1 text-center">{{p.id}}</td>
 					<td>{{p.nome}}</td>
-					<td><button class="btn btn-danger btn-xs" ng-click="delete(p.id)">Delete</button></td>
+					<td class="col-md-1 text-center">
+						<button class="btn btn-warning btn-sm" ng-click="edit(p.id)">
+							<i class="glyphicon glyphicon-pencil"></i> 
+						</button>
+						<button class="btn btn-danger btn-sm" ng-click="delete(p.id)">
+							<i class="glyphicon glyphicon-trash"></i> 
+						</button>
+					</td>
+				</tr>
+				<tr class="text-center">
+					<td colspan="2">&nbsp;</td>
+					<td>
+						<button class="btn btn-default btn-block" ng-click="atualizaTabela()" >
+							<i class="glyphicon glyphicon-refresh"></i> 
+						</button>						
+					</td>
 				</tr>
 			</tbody>
 		</table>
@@ -54,14 +78,27 @@
  			}
 			
 			$scope.save = function() {
-				$http({
-			      url: "http://localhost:8080/create",
-			      method: "POST",
-			      data: "nome="+$scope.nome,
-        		  headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-			    }).then(function(resp) {
-			      $scope.pessoas = resp.data;
-			    });
+
+				if($scope.action == 'edit'){
+					$http({
+				      url: "http://localhost:8080/update",
+				      method: "PUT",
+				      data: "id="+$scope.id+"&nome="+$scope.nome,
+	        		  headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+				    }).then(function(resp) {
+				      $scope.pessoas = resp.data;
+				    });	
+
+				}else {
+					$http({
+				      url: "http://localhost:8080/create",
+				      method: "POST",
+				      data: "nome="+$scope.nome,
+	        		  headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+				    }).then(function(resp) {
+				      $scope.pessoas = resp.data;
+				    });
+				}
 			}
 
 			$scope.delete = function(id) {
@@ -77,6 +114,18 @@
 
 			}
 
+			$scope.edit = function(id) {
+	 			$http.get('http://localhost:8080/find/'+id).then(function(resp) {
+					$scope.id = resp.data[0].id;
+					$scope.nome = resp.data[0].nome;
+
+					$scope.action = "edit";
+				}, function(erro) {
+					console.log(erro); 
+				});
+			}			
+
+			$scope.action = "none";
 			$scope.atualizaTabela();
 		});
 

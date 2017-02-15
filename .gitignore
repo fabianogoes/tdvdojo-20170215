@@ -1,3 +1,4 @@
 env/
 front/node_modules
 __pycache__
+dojo.db

@@ -1,16 +1,30 @@
 import json
 import jsonpickle
-from pessoa import Pessoa
+from pessoa import Pessoa, PessoaDB, Base
 
-from bottle import request, response
+from bottle import Bottle, request, response
 from bottle import route, post, get, put, delete, hook
-from bottle import hook, run
+from bottle import hook, run, redirect
 
-pessoas = [Pessoa('Fabiano'), Pessoa('Diego'), Pessoa('Felipinho'), Pessoa('Fenomeno'), Pessoa('teste')]    
+from sqlalchemy import create_engine, Column, Boolean, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+ 
+# --------------------------------
+# Add SQLAlchemy app
+# --------------------------------
+app = Bottle()
+ 
+#Base = declarative_base()
+engine = create_engine("sqlite:///dojo.db", echo=True)
+create_session = sessionmaker(bind=engine)
+
+pessoas = [] #[Pessoa('Fabiano'), Pessoa('Diego'), Pessoa('Felipinho'), Pessoa('Fenomeno'), Pessoa('teste')]    
 
 _allow_origin = '*'
 _allow_methods = 'PUT, GET, POST, DELETE, OPTIONS'
-_allow_headers = 'Authorization, Origin, Accept, Content-Type, X-Requested-With'
+_allow_headers = 'Authorization, Origin, Accept, Content-Type, X-Requested-With, X-CSRF-Token, Access-Control-Allow-Headers:Accept, Access-Control-Allow-Headers: X-Requested-With, Range, If-Range, X-Brad-Test, Access-Control-Allow-Origin: *'
+
 
 class JsonTransformer(object):
     def transform(self, myObject):
@@ -39,39 +53,86 @@ def home():
 
 @post("/create")
 def create():
-	nome = request.forms.get('nome')
-	pessoas.append(Pessoa(nome))
-	return read()
+    print("create()...")
+    nome = request.forms.get('nome')
+    
+    session = create_session()
+    pessoa = PessoaDB(nome)
+    session.add(pessoa)
+    session.commit()
+
+    return read()
     
 
 @get("/read")
 def read():
     response.content_type = 'application/json'
-    # json_string = json.dumps(pessoas, default=obj_dict)
-    json_string = JsonTransformer().transform(pessoas)
+    
+    session = create_session()
+    result = session.query(PessoaDB).all()
+
+    pessoas = []
+    for item in result:
+        pessoas.append(Pessoa(item.id, item.nome))
+
+    json_string = JsonTransformer().transform(pessoas) 
+    print(json_string)
+
     return json_string
 
+@get("/find/<id>")
+def update(id):
+    session = create_session()
+    pessoa = session.query(PessoaDB).filter_by(id=id).one()
+    pessoas = [Pessoa(pessoa.id, pessoa.nome)]
+
+    json_string = JsonTransformer().transform(pessoas) 
+
+    return json_string
 
 @put("/update")
 def update():
-    id = request.forms.get('id')
+    print("update()...")
     nome = request.forms.get('nome')
-    for pessoa in pessoas:
-        if pessoa.id == int(id):
-            index = pessoas.index(pessoa)
-            pessoa.nome = nome
-            pessoas[index] = pessoa
+    print('nome = '+nome)
 
-    return read()
+    id = request.forms.get('id')
+    print('id = '+id)
+
+    session = create_session()
+    pessoa = session.query(PessoaDB).filter_by(id=id).one()
+    pessoa.nome = nome
+    session.commit() 
+
+    response.content_type = 'application/json'
+    session = create_session()
+    result = session.query(PessoaDB).all()
+    pessoas = []
+    for item in result:
+        pessoas.append(Pessoa(item.id, item.nome))
+
+    json_string = JsonTransformer().transform(pessoas) 
+    return json_string
 
 @delete("/delete/<id>")
 def delete(id):
-    # id = request.forms.get('id')
-    for pessoa in pessoas:
-        if pessoa.id == int(id):
-            index = pessoas.index(pessoa)
-            del pessoas[index]
+    
+    session = create_session()
+    pessoa = session.query(PessoaDB).filter_by(id=id).one()
+    session.delete(pessoa)
+    session.commit()
 
     return read()
 
+def main():
+    """
+    Create the database and add data to it
+    """
+    Base.metadata.create_all(engine)
+ 
+if __name__ == "__main__":
+    main()
+
 run(host='localhost', port=8080, debug=True)
+
+
