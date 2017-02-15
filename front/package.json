@@ -1,0 +1,7 @@
+{
+  "name": "dojo",
+  "dependencies": {
+    "angular": "^1.2.28",
+    "bootstrap": "^3.3.7"
+  }
+}

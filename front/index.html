@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html ng-app="dojo">
+<head>
+	<title>Dojo</title>
+	<link rel="stylesheet" type="text/css" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body ng-controller="DojoController">
+	<dir class="container">
+		<h1>Hello Dojo, {{ nome }}</h1>
+		<hr>	
+
+		<form ng-submit="save()">
+			<label>ID:</label>
+			<input type="text" name="id" ng-model="id" disabled="disabled">
+			<label>Nome:</label>
+			<input type="text" name="nome" ng-model="nome">
+			<button type="submit">Salvar</button>
+		</form>
+		<hr>
+		<button class="btn btn-default btn-xs" ng-click="atualizaTabela()">
+			<i class="glyphicon glyphicon-refresh"></i>
+		</button>
+		<table class="table table-condensed table-bordered table-hover table-striped">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Nome</th>
+					<th><i class="glyphicon glyphicon-tasks"></i></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="p in pessoas">
+					<td>{{p.id}}</td>
+					<td>{{p.nome}}</td>
+					<td><button class="btn btn-danger btn-xs" ng-click="delete(p.id)">Delete</button></td>
+				</tr>
+			</tbody>
+		</table>
+	</dir>
+
+	<script type="text/javascript" src="node_modules/angular/angular.min.js"></script>
+	<script type="text/javascript">
+	
+		var dojo = angular.module('dojo', []);
+		dojo.controller('DojoController', function($scope, $http) {
+
+ 			$scope.atualizaTabela = function(){
+	 			$http.get('http://localhost:8080/read').then(function(resp) {
+					console.log(resp);
+					$scope.pessoas = resp.data;
+				}, function(erro) {
+					console.log(erro); 
+				});
+ 			}
+			
+			$scope.save = function() {
+				$http({
+			      url: "http://localhost:8080/create",
+			      method: "POST",
+			      data: "nome="+$scope.nome,
+        		  headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+			    }).then(function(resp) {
+			      $scope.pessoas = resp.data;
+			    });
+			}
+
+			$scope.delete = function(id) {
+				console.log(id);
+				$http.delete("http://localhost:8080/delete/"+id).then(function(resp) {
+					console.log(resp);
+					$scope.pessoas = resp.data;
+				}, function(erro) {
+					console.log(erro); 
+				});
+
+
+
+			}
+
+			$scope.atualizaTabela();
+		});
+
+	</script>
+
+</body>
+</html>
